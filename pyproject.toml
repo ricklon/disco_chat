@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "disco-chat"
+version = "0.1.0"
+description = "Chat bot that talk to other AIs"
+authors = ["Rick Anderson <rick.rickanderson@gmail.com>"]
+license = "Apache2"
+readme = "README.md"
+packages = [{include = "disco_chat"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+discord = "^2.1.0"
+openai = "^0.25.0"
+pygments = "^2.13.0"
+transformers = "^4.25.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+

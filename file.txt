@@ -1,0 +1,20 @@
+rick.rickanderson@gmail.com
+write python code that parses a file and find the source code portion and surrounds it with markdown coding
+To parse a file and find the source code portion, you can use the regular expression module in Python to search for specific patterns in the file. For example, the following code will search for lines in the file that start with "" and end with "", and surround the source code with markdown coding:
+
+Copy code
+import re
+
+source_code = []
+with open('file.txt', 'r') as f:
+    for line in f:
+        if re.search(r'^```', line):
+            source_code.append(line)
+        elif re.search(r'```$', line):
+            source_code.append(line)
+
+print('\n'.join(source_code))
+This code will open the file 'file.txt' and read each line in the file. It will then use the regular expression module to search for lines that start or end with "```". If a line matches one of these patterns, it will be added to the source_code list. Finally, the code will print the list of source code lines, surrounded by markdown coding.
+
+
+
