@@ -13,6 +13,9 @@ discord = "^2.1.0"
 openai = "^0.25.0"
 pygments = "^2.13.0"
 transformers = "^4.25.1"
+fastapi = "^0.88.0"
+sqlalchemy = "^1.4.45"
+aiosqlite = "^0.18.0"
 
 
 [build-system]

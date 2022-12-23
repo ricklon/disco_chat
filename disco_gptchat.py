@@ -1,9 +1,17 @@
 import os
+import asyncio
+import logging
 import discord
 from discord.ext import commands
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.sql import text
+from sqlalchemy.sql.expression import bindparam
+
 import openai
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+# Connect to the database
+engine = create_async_engine("sqlite+aiosqlite:///mydatabase.db")
 
 # Set the OpenAI API key using an environment variable
 openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -101,7 +109,7 @@ async def ask(ctx, *args):
         return
     
     response = openai.Completion.create(
-        engine="text-davinci-002",
+        engine="text-davinci-003",
         prompt=" ".join(args),
         max_tokens=1024,
         temperature=0.5,
@@ -120,6 +128,71 @@ async def info(ctx):
     bot_info += '- Echo back the messages you send it\n'
     bot_info += f'\nHere is a list of available commands:\n{command_list}'
     await ctx.send(bot_info)
+
+@bot.command(name='add_faq', help='Adds a new question and answer to the faqs table')
+async def add_faq(ctx):
+    # Prompt the user to enter a question
+    await ctx.send('Enter the question:')
+
+    # Wait for the user's response
+    question_message = await bot.wait_for('message', check=lambda message: message.author == ctx.message.author)
+    question = question_message.content
+
+    # Prompt the user to enter an answer
+    await ctx.send('Enter the answer:')
+
+    # Wait for the user's response
+    answer_message = await bot.wait_for('message', check=lambda message: message.author == ctx.message.author)
+    answer = answer_message.content
+
+    async with engine.connect() as conn:
+        # Insert the question and answer into the faqs table
+        insert_stmt = text("INSERT INTO faqs (question, answer) VALUES (:question, :answer)")
+        await conn.execute(insert_stmt, {'question': question, 'answer': answer})
+        await conn.commit()
+        await ctx.send(f'Successfully added the following question and answer to the faqs table: {question} - {answer}')
+
+
+@bot.command(name='search_faq', help='Searches the faqs table for a matching question and returns the answer')
+async def search_faq(ctx, question: str = None):
+    if not question:
+        # Prompt the user to enter a search term
+        await ctx.send('Enter a search term:')
+
+        # Wait for the user's response
+        search_term_message = await bot.wait_for('message', check=lambda message: message.author == ctx.message.author)
+        question = search_term_message.content
+
+    async with engine.connect() as conn:
+        # Fetch the answer for the given question
+        result = await conn.execute(text("SELECT answer FROM faqs WHERE question LIKE :question"), {'question': f'%{question}%'})
+        row = result.fetchone()
+        if row:
+            answer = row['answer']
+            await ctx.send(f'The answer to the question "{question}" is: {answer}')
+        else:
+            await ctx.send(f'No matching question was found in the faqs table')
+
+
+
+
+@bot.command(name='show_questions', help='Displays all the questions in the faqs table')
+async def show_questions(ctx):
+    async with engine.connect() as conn:
+        # Fetch all the questions from the faqs table
+        result = await conn.execute(text("SELECT question FROM faqs"))
+        rows = result.fetchall()
+        
+         # Log the rows to a file
+        logging.info(rows)
+
+        # Construct a message with all the questions
+        message = 'All the questions in the faqs table:\n'
+        for row in rows:
+            message += row['question'] + '\n'
+
+        # Send the message to the Discord channel
+        await ctx.send(message)
 
 # Use the Discord bot token variable when starting the bot
 bot.run(discord_bot_token)
