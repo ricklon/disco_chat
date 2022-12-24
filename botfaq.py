@@ -5,7 +5,10 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import has_permissions
 
-import faq
+import faqorm 
+import setupdb
+
+
 
 import openai
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -48,6 +51,7 @@ model = AutoModelForCausalLM.from_pretrained("ricklon/DialoGPT-medium-guinan", u
 # Define the on_ready event handler
 @bot.event
 async def on_ready():
+    await setupdb.create_database()
     # Print the bot's name
     print(f"Logged in as {bot.user.name}")
     # app_info = await bot.get_current_application_info()
@@ -62,118 +66,87 @@ async def hello(ctx):
     name = ctx.message.author.name
     await ctx.send(f'Nice to meet you, {name}!')
 
+@bot.command()
+async def exit(ctx):
+    """Shut down the bot."""
+    # Check if the user has the "administrator" permission
+    if ctx.author.guild_permissions.administrator:
+        await ctx.send('Shutting down...')
+        await bot.logout()
+    else:
+        await ctx.send('You do not have permission to shut down the bot.')
+
+
 
 @bot.command()
-@has_permissions(manage_messages=True)
 async def add_faq(ctx, channel: discord.TextChannel = None):
+    """Add a new FAQ entry."""
     # If no channel is provided, use the current channel
     if channel is None:
         channel = ctx.channel
+    print(f"Adding FAQ for channel: {ctx.channel.name}, id: {channel.id}, msg.id: {ctx.message.id}")
+    # Set the channel_id to the channel's ID
+    channel_id = channel.id
 
-    # Send a message to the channel to prompt the user for the question
-    await ctx.send('Please type the question for the FAQ:')
 
-    # Wait for the user's response
-    question_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == channel)
-    question = question_message.content
+    # Prompt the user for the question
+    await ctx.send('What is the question you would like to add to the FAQ?')
+    question_response = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
+    question = question_response.content
 
-    # Send a message to the channel to prompt the user for the answer
-    await ctx.send('Please type the answer for the FAQ:')
+    # Prompt the user for the answer
+    await ctx.send('What is the answer to the question?')
+    answer_response = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
+    answer = answer_response.content
 
-    # Wait for the user's response
-    answer_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == channel)
-    answer = answer_message.content
-
-    # Create a session object
-    session = faq.Session()
-
-    # Add the FAQ entry asynchronously
-    await faq.add_faq(session, str(channel.id), question, answer)
-
-    # Send a message to the channel to confirm that the FAQ has been added
-    await ctx.send(f'Successfully added the FAQ: "{question}"')
-
+    # Add the FAQ entry
+    await faqorm.add_faq(channel_id, ctx.message.id, question, answer)
+    await ctx.send('FAQ added successfully!')
 
 
 @bot.command()
-async def list_faqs(ctx, channel: discord.TextChannel = None):
+async def list_faqs(ctx,  channel: discord.TextChannel = None):
+    """List all FAQ entries for a particular channel."""
     # If no channel is provided, use the current channel
     if channel is None:
         channel = ctx.channel
-    # Create a session object
-    session = faq.Session()
-    # Retrieve a list of all the FAQ entries for the specified channel
-    faqs_list = await faq.list_faqs(session, str(channel.id))
-    # Iterate through the list of FAQs and send a message for each one
-    for faq_item in faqs_list:
-        await ctx.send(f'{faq_item.question} - {faq_item.answer}')
+    print(f"Adding FAQ for channel: {ctx.channel.name}, id: {channel.id}, msg.id: {ctx.message.id}")
+    # Set the channel_id to the channel's ID
+    channel_id = channel.id
 
+    faqs = await faqorm.list_faqs(str(channel_id))
+    if not faqs:
+        await ctx.send('There are no FAQs for this channel.')
+    else:
+        for faq in faqs:
+            await ctx.send(f'{faq.question}: {faq.answer}')
 
 @bot.command()
 async def update_faq(ctx, faq_id: int, question: str, answer: str):
-    # Create a session object
-    session = faq.Session()
-
-    # Update the FAQ entry asynchronously
-    await faq.update_faq(session, faq_id, question, answer)
-
-    # Notify the user that the FAQ entry has been updated
-    await ctx.send(f'Successfully updated the FAQ with ID {faq_id}')
+    """Update the question and answer for a particular FAQ entry."""
+    await faqorm.update_faq(faq_id, question, answer)
+    await ctx.send('FAQ updated successfully!')
 
 @bot.command()
 async def delete_faq(ctx, faq_id: int):
-    # Create a session object
-    session = faq.Session()
-
-    # Delete the FAQ entry asynchronously
-    await faq.delete_faq(session, faq_id)
-
-    # Notify the user that the FAQ entry has been deleted
-    await ctx.send(f'Successfully deleted the FAQ with ID {faq_id}')
+    """Delete a particular FAQ entry."""
+    await faqorm.delete_faq(faq_id)
+    await ctx.send('FAQ deleted successfully!')
 
 @bot.command()
 async def get_faq(ctx, faq_id: int):
-    # Create a session object
-    session = faq.Session()
-
-    # Retrieve the FAQ entry asynchronously
-    faq_entry = await faq.get_faq(session, faq_id)
-
-    if faq_entry is not None:
-        # Format the FAQ entry and send it to the user
-        message = f'ID: {faq_entry.id}\nQuestion: {faq_entry.question}\nAnswer: {faq_entry.answer}'
-        await ctx.send(message)
+    """Retrieve a particular FAQ entry."""
+    faq = await faqorm.get_faq(faq_id)
+    if faq:
+        await ctx.send(f'{faq.question}: {faq.answer}')
     else:
-        # Notify the user that the FAQ entry was not found
-        await ctx.send(f'Could not find an FAQ with ID {faq_id}')
-
-
-
-
-
-
+        await ctx.send('FAQ not found.')
 
 @bot.command()
-async def like_faq(ctx, message: discord.Message):
-    # Create a session object
-    session = faq.Session()
-
-    # Increment the reaction count for the FAQ entry asynchronously
-    await faq.like_faq(session, str(message.id))
-
-    # Notify the user that the reaction count has been updated
-    await ctx.send('Successfully liked the FAQ')
-
-@bot.command()
-async def dislike_faq(ctx, message: discord.Message):
-    # Create a session object
-    session = faq.Session()
-
-    # Decrement the reaction count for the FAQ entry asynchronously
-    await faq.dislike_faq(session, str(message.id))
-
-    # Notify the user that the reaction count has been updated
-    await ctx.send('Successfully disliked the FAQ')
+async def like_faq(ctx, message_id: int):
+    """Increment the number of likes for an FAQ entry."""
+    await faqorm.like_faq(message_id)
+    await ctx.send('FAQ liked!')
 
 
 @bot.event
@@ -181,24 +154,25 @@ async def on_reaction_add(reaction, user):
     # Check if the reaction is a thumbs up or thumbs down
     if str(reaction.emoji) == '👍':
         # Increment the reaction count for the FAQ entry asynchronously
-        session = faq.Session()
-        await faq.like_faq(session, str(reaction.message.id))
+        session = faqorm.Session()
+        await faqorm.like_faq(session, str(reaction.message.id))
     elif str(reaction.emoji) == '👎':
         # Decrement the reaction count for the FAQ entry asynchronously
-        session = faq.Session()
-        await faq.dislike_faq(session, str(reaction.message.id))
+        session = faqorm.Session()
+        await faqorm.dislike_faq(session, str(reaction.message.id))
 
 @bot.event
 async def on_reaction_remove(reaction, user):
     # Check if the reaction is a thumbs up or thumbs down
     if str(reaction.emoji) == '👍':
         # Decrement the reaction count for the FAQ entry asynchronously
-        session = faq.Session()
-        await faq.dislike_faq(session, str(reaction.message.id))
+        session = faqorm.Session()
+        await faqorm.dislike_faq(session, str(reaction.message.id))
     elif str(reaction.emoji) == '👎':
         # Increment the reaction count for the FAQ entry asynchronously
-        session = faq.Session()
-        await faq.like_faq(session, str(reaction.message.id))
+        session = faqorm.Session()
+        await faqorm.like_faq(session, str(reaction.message.id))
 
+asyncio.run(setupdb.create_database())
 # Use the Discord bot token variable when starting the bot
 bot.run(discord_bot_token)
