@@ -119,7 +119,7 @@ async def list_faqs(ctx,  channel: discord.TextChannel = None):
         await ctx.send('There are no FAQs for this channel.')
     else:
         for faq in faqs:
-            await ctx.send(f'{faq.question}: {faq.answer}')
+            await ctx.send(f'id: {faq.id}, channel: {bot.get_channel(int(faq.channel_id))}, msg_id: {faq.message_id}, {faq.question}: {faq.answer}')
 
 @bot.command()
 async def update_faq(ctx, faq_id: int, question: str, answer: str):
