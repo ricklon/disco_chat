@@ -120,8 +120,6 @@ async def list_faqs(ctx,  channel: discord.TextChannel = None):
 
 @bot.command()
 async def update_faq(ctx, faq_id: int = None):
-    # Start the debugger
-    pdb.set_trace()
     # If no faq_id is provided, prompt the user for the faq_id
     if faq_id is None:
         await ctx.send('Please enter the ID of the FAQ you want to update:')
@@ -132,32 +130,43 @@ async def update_faq(ctx, faq_id: int = None):
             await ctx.send('Invalid FAQ ID. Please enter a valid ID.')
             return
 
-    
     # Get the faq for the given faq_id
-    faq = await faqorm.get_faq( faq_id)
+    faq = await faqorm.get_faq(faq_id)
     if faq is None:
         await ctx.send(f'No FAQ found with ID {faq_id}')
         return
 
-    # Display the current qu faq['question']estion and answer to the user
-    question = faq.question
-    answer = faq.answer
+    # Display the current question and answer to the user in an embed
+    embed = discord.Embed(title=f'FAQ #{faq_id}', description=faq.question)
+    embed.add_field(name='Answer', value=faq.answer)
+    await ctx.send(embed=embed)
+
+    # Prompt the user for the new question
+    await ctx.send('What is the new question?')
+    question_response = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
+    question = question_response.content
+    
+    # Prompt the user for the new answer
+    await ctx.send('What is the new answer?')
+    answer_response = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
+    answer = answer_response.content
+
+    # Display the new question and answer to the user in an embed
     embed = discord.Embed(title=f'FAQ #{faq_id}', description=question)
     embed.add_field(name='Answer', value=answer)
     await ctx.send(embed=embed)
 
-    # Send a message to the channel to prompt the user for the updated answer
-    await ctx.send('Please type the updated answer for the FAQ:')
+    # Prompt the user to confirm the update
+    await ctx.send('Are you sure you want to update this FAQ? (y/n)')
+    confirmation_response = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
+    if confirmation_response.content.lower() != 'y':
+        await ctx.send('FAQ update cancelled.')
+        return
 
-    # Wait for the user's response
-    answer_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == ctx.channel)
-    updated_answer = answer_message.content
+    # Update the FAQ entry
+    await faqorm.update_faq(faq_id, question, answer)
+    await ctx.send('FAQ updated successfully!')
 
-    # Update the FAQ entry asynchronously
-    await faqorm.update_faq(session, faq_id, updated_question, updated_answer)
-
-    # Notify the user that the FAQ entry has been updated
-    await ctx.send(f'Successfully updated the FAQ with ID {faq_id}')
 
 
 
