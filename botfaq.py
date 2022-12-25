@@ -1,4 +1,4 @@
-import pdb
+#import pdb
 import os
 import asyncio
 import logging
@@ -169,12 +169,46 @@ async def update_faq(ctx, faq_id: int = None):
 
 
 
-
 @bot.command()
-async def delete_faq(ctx, faq_id: int):
-    """Delete a particular FAQ entry."""
-    await faqorm.delete_faq(faq_id)
-    await ctx.send('FAQ deleted successfully!')
+async def delete_faq(ctx, faq_id: int = None):
+    # If no faq_id is provided, prompt the user for the faq_id
+    if faq_id is None:
+        await ctx.send('Please enter the ID of the FAQ you want to delete:')
+        faq_id_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == ctx.channel)
+        try:
+            faq_id = int(faq_id_message.content)
+        except ValueError:
+            await ctx.send('Invalid FAQ ID. Please enter a valid ID.')
+            return
+
+    # Get the faq for the given faq_id
+    faq = await faqorm.get_faq(faq_id)
+    if faq is None:
+        await ctx.send(f'No FAQ found with ID {faq_id}')
+        return
+
+    # Display the current question and answer to the user
+    embed = discord.Embed(title=f'FAQ #{faq_id}', description=faq.question)
+    embed.add_field(name='Answer', value=faq.answer)
+    await ctx.send(embed=embed)
+
+    # Prompt the user to confirm the deletion
+    await ctx.send('Are you sure you want to delete this FAQ? (yes/no)')
+
+    # Wait for the user's response
+    delete_confirm_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == ctx.channel)
+    delete_confirm = delete_confirm_message.content.lower()
+
+    # If the user confirms the deletion, delete the FAQ
+    if delete_confirm == 'yes':
+        await faqorm.delete_faq(faq_id)
+        await ctx.send('FAQ deleted successfully!')
+    elif delete_confirm == 'no':
+        await ctx.send('Deletion cancelled')
+    else:
+        await ctx.send('Invalid response. Deletion cancelled.')
+
+    
 
 @bot.command()
 async def get_faq(ctx, faq_id: int):
