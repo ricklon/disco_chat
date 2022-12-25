@@ -116,7 +116,7 @@ async def list_faqs(ctx,  channel: discord.TextChannel = None):
         await ctx.send('There are no FAQs for this channel.')
     else:
         for faq in faqs:
-            await ctx.send(f'id: {faq.id}, channel: {bot.get_channel(int(faq.channel_id))}, msg_id: {faq.message_id}, {faq.question}: {faq.answer}')
+            await ctx.send(f'id: {faq.id}, channel: {bot.get_channel(int(faq.channel_id))}, msg_id: {faq.message_id}, {faq.question}: {faq.answer}, likes: {faq.likes}')
 
 @bot.command()
 async def update_faq(ctx, faq_id: int = None):
@@ -211,45 +211,70 @@ async def delete_faq(ctx, faq_id: int = None):
     
 
 @bot.command()
-async def get_faq(ctx, faq_id: int):
-    """Retrieve a particular FAQ entry."""
+async def get_faq(ctx, faq_id: int = None):
+    # If no faq_id is provided, prompt the user for the faq_id
+    if faq_id is None:
+        await ctx.send('Please enter the ID of the FAQ you want to retrieve:')
+        faq_id_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == ctx.channel)
+        try:
+            faq_id = int(faq_id_message.content)
+        except ValueError:
+            await ctx.send('Invalid FAQ ID. Please enter a valid ID.')
+            return
+
+    # Get the faq for the given faq_id
     faq = await faqorm.get_faq(faq_id)
     if faq:
-        await ctx.send(f'{faq.question}: {faq.answer}')
+        # Display the faq_id, question, and answer to the user
+        embed = discord.Embed(title=f'FAQ #{faq_id}', description=faq.question)
+        embed.add_field(name='Answer', value=faq.answer)
+        embed.add_field(name='Likes', value=f':thumbsup: {faq.likes}')
+        await ctx.send(embed=embed)
     else:
         await ctx.send('FAQ not found.')
 
+
 @bot.command()
-async def like_faq(ctx, message_id: int):
-    """Increment the number of likes for an FAQ entry."""
-    await faqorm.like_faq(message_id)
-    await ctx.send('FAQ liked!')
+async def like_faq(ctx, faq_id: int = None):
+    # If no faq_id is provided, prompt the user for the faq_id
+    if faq_id is None:
+        await ctx.send('Please enter the ID of the FAQ you want to like:')
+        faq_id_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == ctx.channel)
+        try:
+            faq_id = int(faq_id_message.content)
+        except ValueError:
+            await ctx.send('Invalid FAQ ID. Please enter a valid ID.')
+            return
+
+    # Get the faq for the given faq_id
+    faq = await faqorm.get_faq(faq_id)
+    if faq is None:
+        await ctx.send(f'No FAQ found with ID {faq_id}')
+        return
+
+    # Display the current question and answer to the user
+    embed = discord.Embed(title=f'FAQ #{faq_id}', description=faq.question)
+    embed.add_field(name='Answer', value=faq.answer)
+    embed.add_field(name='Likes', value=faq.likes)
+    await ctx.send(embed=embed)
+
+    # Confirm with the user that they want to like this FAQ
+    confirm_message = await ctx.send('Do you want to like this FAQ? (y/n)')
+    # Wait for the user's response
+    response_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == ctx.channel)
+    if response_message.content.lower() == 'y':
+        # Increment the number of likes for the FAQ
+        await faqorm.like_faq(faq_id)
+        await ctx.send('FAQ liked successfully!')
+    else:
+        await ctx.send('FAQ not liked.')
+    # Delete the confirm message
+    await confirm_message.delete()
+    # Delete the user's response message
+    await response_message.delete()
 
 
-@bot.event
-async def on_reaction_add(reaction, user):
-    # Check if the reaction is a thumbs up or thumbs down
-    if str(reaction.emoji) == '👍':
-        # Increment the reaction count for the FAQ entry asynchronously
-        session = faqorm.Session()
-        await faqorm.like_faq(session, str(reaction.message.id))
-    elif str(reaction.emoji) == '👎':
-        # Decrement the reaction count for the FAQ entry asynchronously
-        session = faqorm.Session()
-        await faqorm.dislike_faq(session, str(reaction.message.id))
-
-@bot.event
-async def on_reaction_remove(reaction, user):
-    # Check if the reaction is a thumbs up or thumbs down
-    if str(reaction.emoji) == '👍':
-        # Decrement the reaction count for the FAQ entry asynchronously
-        session = faqorm.Session()
-        await faqorm.dislike_faq(session, str(reaction.message.id))
-    elif str(reaction.emoji) == '👎':
-        # Increment the reaction count for the FAQ entry asynchronously
-        session = faqorm.Session()
-        await faqorm.like_faq(session, str(reaction.message.id))
-
+# run the tortoise orm setup
 asyncio.run(setupdb.create_database())
 # Use the Discord bot token variable when starting the bot
 bot.run(discord_bot_token)

@@ -1,5 +1,7 @@
 from tortoise.models import Model
 from tortoise import fields
+from tortoise.expressions import F
+
 
 
 class FAQ(Model):
@@ -33,10 +35,12 @@ async def get_faq(faq_id):
     """Retrieve a particular FAQ entry."""
     return await FAQ.get(id=faq_id)
 
-async def like_faq(message_id):
+async def like_faq(faq_id):
     """Increment the number of likes for an FAQ entry."""
-    await FAQ.filter(message_id=message_id).update(likes=FAQ.likes + 1)
+    # await FAQ.filter(id=faq_id).update(likes=FAQ.likes + 1)
+    await FAQ.filter(id=faq_id).update(likes=F('likes') + 1)      
 
-async def dislike_faq(message_id):
+
+async def dislike_faq(faq_id):
     """Decrement the number of likes for an FAQ entry."""
-    await FAQ.filter(message_id=message_id).update(likes=FAQ.likes - 1)
+    await FAQ.filter(id=faq_id).update(likes=FAQ.likes - 1)
