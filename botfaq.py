@@ -6,6 +6,7 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import has_permissions
 
+import csv
 import faqorm 
 import setupdb
 
@@ -272,6 +273,77 @@ async def like_faq(ctx, faq_id: int = None):
     await confirm_message.delete()
     # Delete the user's response message
     await response_message.delete()
+
+import csv
+
+@bot.command()
+async def bulk_add(ctx):
+    # Prompt the user for the CSV text
+    await ctx.send('Please enter the CSV text:')
+
+    # Wait for the user's response
+    csv_text_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == ctx.channel)
+    csv_text = csv_text_message.content
+
+    # Parse the CSV text
+    csv_reader = csv.reader(csv_text.splitlines())
+    questions_and_answers = list(csv_reader)
+
+    # Add the questions and answers to the database
+    for question, answer in questions_and_answers:
+        await faqorm.add_faq(channel_id=ctx.channel.id, message_id=ctx.message.id, question=question, answer=answer)
+
+    # Confirm that the FAQs were added successfully
+    await ctx.send('FAQs added successfully!')
+
+
+@bot.command()
+async def bulk_add_csv(ctx):
+    # Prompt the user for the CSV file
+    await ctx.send('Please enter the CSV file containing the FAQs:')
+    csv_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == ctx.channel)
+    csv_file = csv_message.content
+    # Process the CSV file
+    await process_csv(ctx.channel.id, ctx.message.id, csv_file)
+    # Send a success message to the user
+    await ctx.send('FAQs added successfully!')
+
+async def process_csv(channel_id, message_id, csv_file: str):
+    """Process a CSV file containing FAQs and add them to the database."""
+    # Parse the CSV file
+    faqs = []
+    try:
+        reader = csv.reader(csv_file.splitlines())
+        for row in reader:
+            # Check if the first column is a question number
+            if row[0].isdigit():
+                # If it is a question number, use the second and third columns as the question and answer
+                question = row[1]
+                answer = row[2]
+            else:
+                # If it is not a question number, use the first and second columns as the question and answer
+                question = row[0]
+                answer = row[1]
+            # Add the FAQ to the list
+            faqs.append((question, answer))
+    except csv.Error as e:
+        print(f'Error parsing CSV file: {e}')
+        return
+
+    # Add the FAQs to the database
+    for question, answer in faqs:
+        await faqorm.add_faq(channel_id, message_id, question, answer)
+
+
+@bot.command()
+async def bulk_add_json(ctx):
+    """Add multiple FAQ entries from a JSON object."""
+    # Prompt the user for the JSON object
+    await ctx.send('Please enter the JSON object containing the list of FAQs:')
+    json_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == ctx.channel)
+    # Add the FAQs to the database
+    result = await faqorm.bulk_add_faqs(str(ctx.channel.id), ctx.message.id, json_message.content)
+    await ctx.send(result)
 
 
 # run the tortoise orm setup

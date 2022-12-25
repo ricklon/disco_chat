@@ -1,6 +1,7 @@
 from tortoise.models import Model
 from tortoise import fields
 from tortoise.expressions import F
+import json
 
 
 
@@ -41,6 +42,15 @@ async def like_faq(faq_id):
     await FAQ.filter(id=faq_id).update(likes=F('likes') + 1)      
 
 
-async def dislike_faq(faq_id):
-    """Decrement the number of likes for an FAQ entry."""
-    await FAQ.filter(id=faq_id).update(likes=FAQ.likes - 1)
+async def bulk_add_faqs(channel_id, message_id, faqs):
+    """Create multiple new FAQ entries from a JSON object."""
+    # Parse the JSON object
+    try:
+        faqs = json.loads(faqs)
+    except json.JSONDecodeError:
+        return 'Invalid JSON format.'
+
+    # Iterate through the list of FAQs and add them to the database
+    for faq in faqs:
+        await add_faq(channel_id, message_id, faq['question'], faq['answer'])
+    return 'FAQs added successfully!'
