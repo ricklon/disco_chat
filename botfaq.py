@@ -1,3 +1,4 @@
+import pdb
 import os
 import asyncio
 import logging
@@ -8,12 +9,8 @@ from discord.ext.commands import has_permissions
 import faqorm 
 import setupdb
 
-
-
 import openai
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
-
 
 # Set the OpenAI API key using an environment variable
 openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -122,10 +119,47 @@ async def list_faqs(ctx,  channel: discord.TextChannel = None):
             await ctx.send(f'id: {faq.id}, channel: {bot.get_channel(int(faq.channel_id))}, msg_id: {faq.message_id}, {faq.question}: {faq.answer}')
 
 @bot.command()
-async def update_faq(ctx, faq_id: int, question: str, answer: str):
-    """Update the question and answer for a particular FAQ entry."""
-    await faqorm.update_faq(faq_id, question, answer)
-    await ctx.send('FAQ updated successfully!')
+async def update_faq(ctx, faq_id: int = None):
+    # Start the debugger
+    pdb.set_trace()
+    # If no faq_id is provided, prompt the user for the faq_id
+    if faq_id is None:
+        await ctx.send('Please enter the ID of the FAQ you want to update:')
+        faq_id_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == ctx.channel)
+        try:
+            faq_id = int(faq_id_message.content)
+        except ValueError:
+            await ctx.send('Invalid FAQ ID. Please enter a valid ID.')
+            return
+
+    
+    # Get the faq for the given faq_id
+    faq = await faqorm.get_faq( faq_id)
+    if faq is None:
+        await ctx.send(f'No FAQ found with ID {faq_id}')
+        return
+
+    # Display the current qu faq['question']estion and answer to the user
+    question = faq.question
+    answer = faq.answer
+    embed = discord.Embed(title=f'FAQ #{faq_id}', description=question)
+    embed.add_field(name='Answer', value=answer)
+    await ctx.send(embed=embed)
+
+    # Send a message to the channel to prompt the user for the updated answer
+    await ctx.send('Please type the updated answer for the FAQ:')
+
+    # Wait for the user's response
+    answer_message = await bot.wait_for('message', check=lambda message: message.author == ctx.author and message.channel == ctx.channel)
+    updated_answer = answer_message.content
+
+    # Update the FAQ entry asynchronously
+    await faqorm.update_faq(session, faq_id, updated_question, updated_answer)
+
+    # Notify the user that the FAQ entry has been updated
+    await ctx.send(f'Successfully updated the FAQ with ID {faq_id}')
+
+
 
 @bot.command()
 async def delete_faq(ctx, faq_id: int):
