@@ -28,9 +28,26 @@ ais = {
 # Set the maximum number of AIs
 MAX_AIS = int(os.environ.get("MAX_AIS", 10))
 
+# Get the list of default intents
+intents = discord.Intents.all()
+# Create a Bot instance with the specified command prefix
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Create the Discord bot
-bot = commands.Bot(command_prefix='!')
+# Set the allowed_channel_id variable to the specified value
+allowed_channel_id = 1050950698382151680
+#allowed_channel_id = 1077679407147262062
+
+#Define the on_ready event handler
+@bot.event
+async def on_ready():
+    # Print the bot's name
+    print(f"Logged in as {bot.user.name}")
+    print("Servers:")
+    for guild in bot.guilds:
+        print(f"- {guild.name} ({guild.id})")
+    # Print the bot's name to the channel
+    channel = bot.get_channel(allowed_channel_id)
+    await channel.send(f"Logged in as {bot.user.name}")
 
 
 @bot.command(name='listais', help='List available AIs')
