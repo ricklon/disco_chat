@@ -28,7 +28,7 @@ jobs:
       - name: Login to DigitalOcean Container Registry
         if: github.ref == 'refs/heads/droplet'
         run: |
-          doctl registry login  --token ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} registry.digitalocean.com
+          doctl registry login  --access-token ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} registry.digitalocean.com
       
       - name: Build and push Docker image to Docker Hub
         if: github.ref == 'refs/heads/main'
