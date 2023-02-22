@@ -20,13 +20,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       
+      - name: Install and configure doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      
       - name: Login to DigitalOcean Container Registry
         if: github.ref == 'refs/heads/droplet'
-        uses: digitalocean/container-registry-login@v1
-        with:
-          registry: registry.digitalocean.com/rawr
-          username: ${{ secrets.DOCR_USERNAME }}
-          password: ${{ secrets.DOCR_PASSWORD }}
+        run: |
+          doctl registry login --username ${{ secrets.DOCR_USERNAME }} --password ${{ secrets.DOCR_PASSWORD }} registry.digitalocean.com
       
       - name: Build and push Docker image to Docker Hub
         if: github.ref == 'refs/heads/main'
