@@ -16,19 +16,22 @@ class AI:
     def get_default_prompt(self):
         return f"I am a friendly artificial intelligence ({self.model_engine})."
 
-    def get_response(self, message):
-        if not self.active:
-            return "Error: AI is not active."
-        prompt = self.conversation_history + f"{self.name}: {message}\n"
-        completions = openai.Completion.create(
-            engine=self.model_engine,
-            prompt=prompt,
-            max_tokens=1024,
-            temperature=0.7,
-        )
-        response = completions.choices[0].text
-        self.conversation_history += f"{self.model_engine}: {response}\n"
-        return response
+def get_response(self, message):
+    if not self.active:
+        return "Error: AI is not active."
+    self.conversation_history += f"{self.name}: {message}\n"
+    prompt = self.conversation_history
+    completions = openai.Completion.create(
+        engine=self.model_engine,
+        prompt=prompt,
+        max_tokens=1024,
+        temperature=0.7,
+    )
+    response = completions.choices[0].text
+    self.conversation_history += f"{self.name}: {response}\n"
+    return f"{self.name}: {response}"
+
+
 
     def set_prompt(self, prompt):
         self.prompt = prompt

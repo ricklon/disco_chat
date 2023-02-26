@@ -7,8 +7,8 @@ from discord.ext import commands
 from discord.ext.commands import has_permissions
 
 import csv
-import faqorm 
-import setupdb
+import attic.faqorm as faqorm 
+import attic.setupdb as setupdb
 
 import openai
 from transformers import AutoModelForCausalLM, AutoTokenizer
