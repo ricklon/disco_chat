@@ -56,7 +56,7 @@ async def list_ais(ctx):
 
 
 @bot.command(name='newai', help='Create a new AI')
-@has_permissions(administrator=True)
+#@has_permissions(administrator=True)
 async def new_ai(ctx, name: str, model: str, prompt: str = None):
     if len(ais) >= MAX_AIS:
         await ctx.send(f"Error: maximum number of AIs ({MAX_AIS}) has been reached.")
@@ -77,7 +77,7 @@ async def get_prompt(ctx, name: str):
 
 
 @bot.command(name='setprompt', help='Set the prompt for an AI')
-@has_permissions(administrator=True)
+#@has_permissions(administrator=True)
 async def set_prompt(ctx, name: str, prompt: str):
     ai = ais.get(name)
     if ai is None:
@@ -98,7 +98,7 @@ async def save_history(ctx, name: str, file_name: str):
 
 
 @bot.command(name='deactivate', help='Deactivate an AI')
-@has_permissions(administrator=True)
+#@has_permissions(administrator=True)
 async def deactivate(ctx, name: str):
     ai = ais.get(name)
     if ai is None:
@@ -109,7 +109,7 @@ async def deactivate(ctx, name: str):
 
 
 @bot.command(name='activate', help='Activate an AI')
-@has_permissions(administrator=True)
+#@has_permissions(administrator=True)
 async def activate(ctx, name: str):
     ai = ais.get(name)
     if ai is None:
@@ -120,7 +120,7 @@ async def activate(ctx, name: str):
 
 
 @bot.command(name='removeai', help='Remove an AI')
-@has_permissions(administrator=True)
+#@has_permissions(administrator=True)
 async def remove_ai(ctx, name: str):
     ai = ais.get(name)
     if ai is None:
