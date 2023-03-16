@@ -51,7 +51,13 @@ class AIChatbot:
 
         # Extract the generated response, the total number of tokens used, and the finish_reason
         generated_response = response.choices[0].message["content"]
-        total_tokens_used = response.usage["total_tokens"]
+        
+         # Get the total tokens used in the API call
+        total_tokens_used = response['usage']['total_tokens']
+        
+        # Update the total token count for the current conversation
+        self.token_count += total_tokens_used
+        
         finish_reason = response.choices[0].finish_reason
 
         # Update the token count for the current conversation
