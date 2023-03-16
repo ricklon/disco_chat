@@ -11,7 +11,7 @@ class AIChatbot:
         self.parameters = {}
         self.openai_api_key = openai_api_key
         openai.api_key = self.openai_api_key
-        self.system_message = f"You are {self.name}, an AI chatbot. Knowledge cutoff: {knowledge_cutoff} Current date: {current_date}"
+        self.system_message = [f"You are {self.name}, an AI chatbot. Knowledge cutoff: {knowledge_cutoff} Current date: {current_date}"]
 
 
     def get_default_prompt(self):
