@@ -2,16 +2,28 @@ import openai
 import json
 
 class AIChatbot:
-    def __init__(self, name, bio, model_engine, openai_api_key):
+    def __init__(self, name, bio, model, openai_api_key, system_message=None):
         self.name = name
         self.bio = bio
         self.message_history = []
-        self.model_engine = model_engine
+        self.model = model
         self.language = "English"
         self.parameters = {}
         self.openai_api_key = openai_api_key
         openai.api_key = self.openai_api_key
-        self.system_message = [f"You are {self.name}, an AI chatbot. Knowledge cutoff: {knowledge_cutoff} Current date: {current_date}"]
+
+        # Define knowledge_cutoff and current_date
+        knowledge_cutoff = "2021-09"
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        self.system_message = system_message or [
+            {
+                "role": "system",
+                "content": f"You are {self.name}, an AI chatbot. Knowledge cutoff: {knowledge_cutoff}. Current date: {current_date}."
+            }
+        ]
+        # Initialize the message_history as an empty list of dictionaries
+        self.message_history = []
 
 
     def get_default_prompt(self):
