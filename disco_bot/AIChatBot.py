@@ -2,35 +2,34 @@ import openai
 import json
 
 class AIChatbot:
-    def __init__(self, name, bio, model_engine, openai_api_key, prompt=None):
+    def __init__(self, name, bio, model_engine, openai_api_key):
         self.name = name
         self.bio = bio
-        self.model_engine = model_engine
-        self.prompt = prompt or self.get_default_prompt()
         self.message_history = []
+        self.model_engine = model_engine
         self.language = "English"
         self.parameters = {}
-        self.token_count = 0
-        self.active = True
+        self.openai_api_key = openai_api_key
+        openai.api_key = self.openai_api_key
+        self.system_message = f"You are {self.name}, an AI chatbot. Knowledge cutoff: {knowledge_cutoff} Current date: {current_date}"
 
-        # Set the OpenAI API key
-        self.api_key = openai_api_key
-        openai.api_key = self.api_key
 
     def get_default_prompt(self):
         return f"I am a friendly artificial intelligence ({self.model_engine})."
 
     def get_response(self, messages):
-        if not self.active:
-            return "Error: AI is not active."
-
+        """Returns the response for the given prompt using the OpenAI API."""
         # Append the input messages to the message history
         self.message_history.extend(messages)
 
+        chat_messages = [{"role": "system", "content": self.system_message}]
+        for message in self.message_history:
+            chat_messages.append({"role": "user", "content": message})
+
         # Call the OpenAI API to generate a response
-        response = openai.Completion.create(
-            engine=self.model_engine,
-            prompt=self.message_history,
+        response = openai.ChatCompletion.create(
+            model=self.model_engine,
+            messages=chat_messages,
             max_tokens=1024,
             n=1,
             stop=None,
@@ -38,8 +37,8 @@ class AIChatbot:
         )
 
         # Extract the generated response and the total number of tokens used
-        generated_response = response.choices[0].text
-        total_tokens_used = response.total_characters
+        generated_response = response.choices[0].message["content"]
+        total_tokens_used = response.usage["total_tokens"]
 
         # Update the token count for the current conversation
         self.token_count += total_tokens_used
