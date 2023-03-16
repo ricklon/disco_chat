@@ -117,3 +117,8 @@ class AIChatbot:
 
     def activate(self):
         self.active = True
+        
+    def estimate_cost(self):
+        cost_per_token = 0.0005  # Update this value based on your OpenAI pricing plan
+        return self.token_count * cost_per_token
+    
