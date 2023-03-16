@@ -5,6 +5,7 @@ class AIChatbot:
     def __init__(self, name, bio, model, openai_api_key, system_message=None):
         self.name = name
         self.bio = bio
+        self.token_count = 0
         self.message_history = []
         self.model = model
         self.language = "English"
