@@ -36,15 +36,16 @@ class AIChatbot:
             temperature=0.5,
         )
 
-        # Extract the generated response and the total number of tokens used
+        # Extract the generated response, the total number of tokens used, and the finish_reason
         generated_response = response.choices[0].message["content"]
         total_tokens_used = response.usage["total_tokens"]
+        finish_reason = response.choices[0].finish_reason
 
         # Update the token count for the current conversation
         self.token_count += total_tokens_used
 
-        # Return the generated response and the total number of tokens used
-        return generated_response, total_tokens_used
+        # Return the generated response, the total number of tokens used, and the finish_reason
+        return generated_response, total_tokens_used, finish_reason
 
     # Getter and setter methods
     def get_name(self):
